@@ -6,6 +6,7 @@ import breakout.event.EventBus;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 /*
  *  Overall all logic for the Breakout Game
@@ -22,7 +23,7 @@ public class Breakout {
     public static final double BALL_SPEED_FACTOR = 1.05; // Increase ball speed
     public static final long SEC = 1_000_000_000;  // Nano seconds used by JavaFX
     public static final Ball ball = new Ball(GAME_WIDTH / 2 - (Ball.BALL_WIDTH / 2), GAME_HEIGHT - 100);
-    public static final Paddle paddle = new Paddle(GAME_WIDTH / 2 - (Paddle.PADDLE_WIDTH / 2), ball.yPos + ball.getWidth());
+    public static final Paddle paddle = new Paddle(GAME_WIDTH / 2 - (Paddle.PADDLE_WIDTH / 2), ball.getY() + ball.getWidth());
 
 
     private int ballsLeft = 5;
@@ -36,6 +37,10 @@ public class Breakout {
     public Breakout(List<Wall> walls, List<Brick> bricks){
         this.walls = walls;
         this.bricks = bricks;
+
+        Random r = new Random();
+        //ball.setX(r.nextInt((int)GAME_WIDTH));
+        ball.setAngle(Math.PI / 4); // TEMP
     }
 
 
@@ -44,18 +49,106 @@ public class Breakout {
     private long timeForLastHit;         // To avoid multiple collisions
 
     public void update(long now) {
-        // TODO  Main game loop, start functional decomposition from here
-        // MOVE PADDLE
-        // MOVE BALL
+        // Move Ball
+        moveBall();
+
+        // Collisions
+        if (timeForLastHit <= now - (SEC / 1000)){
+            handleCollisions(now);
+        }
+
+        // Game Over
+        if (ball.getY() >= GAME_HEIGHT){
+            gameOver();
+        }
     }
 
     // ----- Helper methods--------------
 
     // Used for functional decomposition
+    private void gameOver(){
+        if (getBallsLeft() > 0){
+            // Spawns a new ball
+            ball.setX(GAME_WIDTH / 2 - (Ball.BALL_WIDTH / 2));
+            ball.setY(GAME_HEIGHT - 100);
+            ball.setAngle(Math.PI / 4);
 
+            ballsLeft -= 1;
+        }
+    }
+
+    private void handleCollisions(long now){
+        double xPos = ball.getX();
+        double yPos = ball.getY();
+
+        //System.out.println(ball.getAngle());
+
+        // Walls (Left/Right/Top)
+        if (xPos + ball.getWidth() >= GAME_WIDTH){ // Right Wall
+            timeForLastHit = now;
+            ball.setAngle(Math.PI - ball.getAngle());
+        }
+        else if (xPos <= 0){ // Left Wall
+            ball.setAngle(Math.PI - ball.getAngle());
+            timeForLastHit = now;
+        }
+        else if (yPos <= 0){
+            //ball.setAngle(Math.PI + ball.getAngle());
+            ball.setAngle(ball.getAngle() + Math.PI / 2);
+            //ball.setAngle(Math.PI - ball.getAngle());
+            timeForLastHit = now;
+        }
+        // Collision with paddle
+        else if (yPos >= paddle.getY() - paddle.getHeight() / 2){
+            if (yPos <= paddle.getY() + paddle.getHeight() / 2){
+                if (xPos >= paddle.getX() && xPos <= paddle.getX() + paddle.getWidth()){
+                    ball.setAngle(ball.getAngle() + Math.PI / 2);
+                    timeForLastHit = now;
+                }
+            }
+        }
+
+        // Collision with bricks
+        for (int i = 0; i < bricks.size(); i++){
+            Brick b = bricks.get(i);
+            if ((yPos >= b.getY() && yPos <= b.getY() + b.getHeight()) && (xPos >= b.getX() && xPos <= b.getX() + b.getWidth())){
+                ball.setAngle(ball.getAngle() + Math.PI / 2);
+                bricks.remove(i);
+                i--;
+                points++;
+            }
+        }
+    }
+
+    private void moveBall(){
+        double cxPos = ball.getX();
+        double cyPos = ball.getY();
+        double angle = ball.getAngle();
+
+        double nxPos = cxPos + Math.cos(angle) * Ball.BALL_SPEED;
+        double nyPos = cyPos - Math.sin(angle) * Ball.BALL_SPEED;
+
+        ball.setX(nxPos);
+        ball.setY(nyPos);
+    }
 
 
     // --- Used by GUI  ------------------------
+
+    public void movePaddle(int dir){
+        double cxPos = paddle.getX();
+        double nxPos = cxPos + (dir * Paddle.PADDLE_SPEED);
+
+        // Normalizes the positions
+        if (nxPos < 0){
+            nxPos = 0;
+        }
+        else if (nxPos + paddle.getWidth() > GAME_WIDTH){
+            nxPos = GAME_WIDTH - paddle.getWidth();
+        }
+
+        paddle.setX(nxPos);
+    }
 
     public List<IPositionable> getPositionables() {
         List<IPositionable> posis = new ArrayList<>();

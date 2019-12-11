@@ -11,15 +11,16 @@ import static breakout.model.Breakout.GAME_WIDTH;
 
 public class Ball implements IPositionable {
     public static final double BALL_WIDTH = 8.0;
-    public static final double BALL_SPEED = 10.0;
+    public static final double BALL_SPEED = 4.0;
 
     public Ball(double x, double y){
         this.xPos = x;
         this.yPos = y;
     }
 
-    public double xPos;
-    public double yPos;
+    private double xPos;
+    private double yPos;
+    private double angle;
 
     @Override
     public double getX() {
@@ -39,5 +40,21 @@ public class Ball implements IPositionable {
     @Override
     public double getHeight() {
         return BALL_WIDTH;
+    }
+
+    public void setX(double xPos){
+        this.xPos = xPos;
+    }
+
+    public void setY(double yPos){
+        this.yPos = yPos;
+    }
+
+    public void setAngle(double angle){
+        this.angle = angle;
+    }
+
+    public double getAngle(){
+        return angle;
     }
 }

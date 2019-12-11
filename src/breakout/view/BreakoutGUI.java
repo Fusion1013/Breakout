@@ -54,10 +54,10 @@ public class BreakoutGUI extends Application implements IEventHandler {
         KeyCode kc = event.getCode();
         switch (kc) {
             case LEFT:
-                // TODO
+                breakout.movePaddle(-1);
                 break;
             case RIGHT:
-                // TODO
+                breakout.movePaddle(1);
                 break;
             default:  // Nothing
         }
