@@ -33,6 +33,9 @@ public class Breakout {
     private List<Wall> walls;
     private List<Brick> bricks;
 
+    // Variables needed for paddle movement
+    private int dx;
+
     // Constructor that accepts all objects needed for the model
     public Breakout(List<Wall> walls, List<Brick> bricks){
         this.walls = walls;
@@ -49,6 +52,12 @@ public class Breakout {
     private long timeForLastHit;         // To avoid multiple collisions
 
     public void update(long now) {
+        // Hax
+        paddle.setX(ball.getX() - paddle.getWidth() / 2);
+
+        // Move Paddle
+        movePaddle(dx);
+
         // Move Ball
         moveBall();
 
@@ -75,6 +84,9 @@ public class Breakout {
 
             ballsLeft -= 1;
         }
+        else{
+            // TODO
+        }
     }
 
     private void handleCollisions(long now){
@@ -82,6 +94,12 @@ public class Breakout {
         double yPos = ball.getY();
 
         //System.out.println(ball.getAngle());
+
+        // TODO: Collision with walls: Actually use the walls
+        // TODO: Improve collision with paddle
+        // TODO: Fix: Ball disappears when it hits a corner
+        // TODO: Collision with bricks from all sides
+        // TODO: Collision bounce angle for multiple directions is wrong depending on the entry angle
 
         // Walls (Left/Right/Top)
         if (xPos + ball.getWidth() >= GAME_WIDTH){ // Right Wall
@@ -132,12 +150,9 @@ public class Breakout {
         ball.setY(nyPos);
     }
 
-
-    // --- Used by GUI  ------------------------
-
-    public void movePaddle(int dir){
+    public void movePaddle(int dx){
         double cxPos = paddle.getX();
-        double nxPos = cxPos + (dir * Paddle.PADDLE_SPEED);
+        double nxPos = cxPos + (dx * Paddle.PADDLE_SPEED);
 
         // Normalizes the positions
         if (nxPos < 0){
@@ -148,6 +163,13 @@ public class Breakout {
         }
 
         paddle.setX(nxPos);
+    }
+
+
+    // --- Used by GUI  ------------------------
+
+    public void setDx(int dx){
+        this.dx = dx;
     }
 
     public List<IPositionable> getPositionables() {

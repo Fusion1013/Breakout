@@ -54,10 +54,10 @@ public class BreakoutGUI extends Application implements IEventHandler {
         KeyCode kc = event.getCode();
         switch (kc) {
             case LEFT:
-                breakout.movePaddle(-1);
+                breakout.setDx(-1);
                 break;
             case RIGHT:
-                breakout.movePaddle(1);
+                breakout.setDx(1);
                 break;
             default:  // Nothing
         }
@@ -71,7 +71,7 @@ public class BreakoutGUI extends Application implements IEventHandler {
         switch (kc) {
             case LEFT:        // No break, fall through
             case RIGHT:
-                // TODO
+                breakout.setDx(0);
                 break;
             default: // Nothing
         }
@@ -125,15 +125,8 @@ public class BreakoutGUI extends Application implements IEventHandler {
             for (int x = offset - 2; x < nCols * (bw + offset); x += bw + offset) {
                 Brick b = new Brick(x, y, points);
                 bricks.add(b);
-
-                if (points == 100){
-                    points = 300;
-                }
-                else{
-                    points -= 100;
-                }
             }
-            //points -= 100;
+            points -= 100;
         }
         return bricks;
     }
