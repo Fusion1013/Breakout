@@ -27,7 +27,6 @@ import static breakout.model.Breakout.GAME_HEIGHT;
 import static breakout.model.Breakout.GAME_WIDTH;
 import static breakout.model.Brick.BRICK_HEIGHT;
 import static breakout.model.Brick.BRICK_WIDTH;
-import static breakout.model.Paddle.PADDLE_SPEED;
 import static java.lang.System.exit;
 import static java.lang.System.out;
 
@@ -54,10 +53,10 @@ public class BreakoutGUI extends Application implements IEventHandler {
         KeyCode kc = event.getCode();
         switch (kc) {
             case LEFT:
-                breakout.setDx(-1);
+                breakout.setPaddleDX(-1);
                 break;
             case RIGHT:
-                breakout.setDx(1);
+                breakout.setPaddleDX(1);
                 break;
             default:  // Nothing
         }
@@ -71,7 +70,7 @@ public class BreakoutGUI extends Application implements IEventHandler {
         switch (kc) {
             case LEFT:        // No break, fall through
             case RIGHT:
-                breakout.setDx(0);
+                breakout.setPaddleDX(0);
                 break;
             default: // Nothing
         }
@@ -91,6 +90,9 @@ public class BreakoutGUI extends Application implements IEventHandler {
         breakout = new Breakout(walls, bricks);
 
         bindBricks(bricks);
+
+        // Events
+        EventBus.INSTANCE.register( this );
 
         // Start game
         timer.start();
@@ -146,7 +148,6 @@ public class BreakoutGUI extends Application implements IEventHandler {
                     assets.bind(b, assets.redTile);
                     break;
                 default:
-                    out.println("Wat");
                     ;   // Nothing
             }
         }
@@ -157,9 +158,9 @@ public class BreakoutGUI extends Application implements IEventHandler {
     @Override
     public void onModelEvent(ModelEvent evt) {
         if (evt.type == ModelEvent.Type.BALL_HIT_PADDLE) {
-           // TODO Play a sound
+            assets.ballHitPaddle.play();
         } else if (evt.type == ModelEvent.Type.BALL_HIT_BRICK) {
-            // TODO Play a sound
+            assets.ballHitBrick.play();
         }
     }
 

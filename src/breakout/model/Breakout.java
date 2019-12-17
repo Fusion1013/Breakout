@@ -1,8 +1,10 @@
 package breakout.model;
 
 
-import breakout.event.ModelEvent;
 import breakout.event.EventBus;
+import breakout.event.IEventHandler;
+import breakout.event.ModelEvent;
+import breakout.view.BreakoutGUI;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +36,7 @@ public class Breakout {
     private List<Brick> bricks;
 
     // Variables needed for paddle movement
-    private int dx;
+    private int paddleDX;
 
     // Constructor that accepts all objects needed for the model
     public Breakout(List<Wall> walls, List<Brick> bricks){
@@ -42,8 +44,6 @@ public class Breakout {
         this.bricks = bricks;
 
         Random r = new Random();
-        //ball.setX(r.nextInt((int)GAME_WIDTH));
-        ball.setAngle(Math.PI / 4); // TEMP
     }
 
 
@@ -56,13 +56,20 @@ public class Breakout {
         paddle.setX(ball.getX() - paddle.getWidth() / 2);
 
         // Move Paddle
-        movePaddle(dx);
+        movePaddle(paddleDX);
 
         // Move Ball
-        moveBall();
+        //moveBall(ball.getDX(), ball.getDY());
+
+        for (int i = 0; i < Ball.BALL_SPEED * 10; i++){
+            moveBall(ball.getDX() / (Ball.BALL_SPEED * 10), ball.getDY() / (Ball.BALL_SPEED * 10));
+            if (timeForLastHit <= now - (SEC / 30)){
+                handleCollisions(now);
+            }
+        }
 
         // Collisions
-        if (timeForLastHit <= now - (SEC / 1000)){
+        if (timeForLastHit <= now - (SEC / 30)){
             handleCollisions(now);
         }
 
@@ -80,7 +87,6 @@ public class Breakout {
             // Spawns a new ball
             ball.setX(GAME_WIDTH / 2 - (Ball.BALL_WIDTH / 2));
             ball.setY(GAME_HEIGHT - 100);
-            ball.setAngle(Math.PI / 4);
 
             ballsLeft -= 1;
         }
@@ -93,35 +99,23 @@ public class Breakout {
         double xPos = ball.getX();
         double yPos = ball.getY();
 
-        //System.out.println(ball.getAngle());
-
-        // TODO: Collision with walls: Actually use the walls
-        // TODO: Improve collision with paddle
-        // TODO: Fix: Ball disappears when it hits a corner
-        // TODO: Collision with bricks from all sides
-        // TODO: Collision bounce angle for multiple directions is wrong depending on the entry angle
-
-        // Walls (Left/Right/Top)
-        if (xPos + ball.getWidth() >= GAME_WIDTH){ // Right Wall
-            timeForLastHit = now;
-            ball.setAngle(Math.PI - ball.getAngle());
-        }
-        else if (xPos <= 0){ // Left Wall
-            ball.setAngle(Math.PI - ball.getAngle());
+        if (xPos + ball.getWidth() >= GAME_WIDTH || xPos <= 0){ // Left/Right Wall
+            ball.setDX(-ball.getDX());
             timeForLastHit = now;
         }
-        else if (yPos <= 0){
-            //ball.setAngle(Math.PI + ball.getAngle());
-            ball.setAngle(ball.getAngle() + Math.PI / 2);
-            //ball.setAngle(Math.PI - ball.getAngle());
+        else if (yPos <= 0){ // Top Wall
+            ball.setDY(-ball.getDY());
             timeForLastHit = now;
         }
         // Collision with paddle
         else if (yPos >= paddle.getY() - paddle.getHeight() / 2){
             if (yPos <= paddle.getY() + paddle.getHeight() / 2){
                 if (xPos >= paddle.getX() && xPos <= paddle.getX() + paddle.getWidth()){
-                    ball.setAngle(ball.getAngle() + Math.PI / 2);
+                    ball.setDY(-ball.getDY());
                     timeForLastHit = now;
+
+                    // Call Sound
+                    EventBus.INSTANCE.publish(new ModelEvent(ModelEvent.Type.BALL_HIT_PADDLE));
                 }
             }
         }
@@ -129,22 +123,25 @@ public class Breakout {
         // Collision with bricks
         for (int i = 0; i < bricks.size(); i++){
             Brick b = bricks.get(i);
-            if ((yPos >= b.getY() && yPos <= b.getY() + b.getHeight()) && (xPos >= b.getX() && xPos <= b.getX() + b.getWidth())){
-                ball.setAngle(ball.getAngle() + Math.PI / 2);
+            if ((yPos >= b.getY() - 1 && yPos <= b.getY() + b.getHeight() + 2) && (xPos >= b.getX() - 1 && xPos <= b.getX() + b.getWidth() + 2)){
+                ball.setDY(-ball.getDY());
+                timeForLastHit = now;
                 bricks.remove(i);
                 i--;
                 points++;
+
+                // Call Sound
+                EventBus.INSTANCE.publish(new ModelEvent(ModelEvent.Type.BALL_HIT_BRICK));
             }
         }
     }
 
-    private void moveBall(){
+    private void moveBall(double dx, double dy){
         double cxPos = ball.getX();
         double cyPos = ball.getY();
-        double angle = ball.getAngle();
 
-        double nxPos = cxPos + Math.cos(angle) * Ball.BALL_SPEED;
-        double nyPos = cyPos - Math.sin(angle) * Ball.BALL_SPEED;
+        double nxPos = cxPos + dx;
+        double nyPos = cyPos + dy;
 
         ball.setX(nxPos);
         ball.setY(nyPos);
@@ -168,21 +165,21 @@ public class Breakout {
 
     // --- Used by GUI  ------------------------
 
-    public void setDx(int dx){
-        this.dx = dx;
+    public void setPaddleDX(int paddleDX){
+        this.paddleDX = paddleDX;
     }
 
     public List<IPositionable> getPositionables() {
-        List<IPositionable> posis = new ArrayList<>();
+        List<IPositionable> posables = new ArrayList<>();
         for (Wall w : walls){
-            posis.add(w);
+            posables.add(w);
         }
         for (Brick b : bricks){
-            posis.add(b);
+            posables.add(b);
         }
-        posis.add(ball);
-        posis.add(paddle);
-        return posis;
+        posables.add(ball);
+        posables.add(paddle);
+        return posables;
     }
 
     public int getPoints() {
