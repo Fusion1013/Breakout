@@ -18,7 +18,7 @@ import java.util.Random;
  *  NOTE: Nothing visual here
  *
  */
-public class Breakout {
+public class Breakout extends Base {
 
     public static final double GAME_WIDTH = 400;
     public static final double GAME_HEIGHT = 400;
@@ -136,6 +136,9 @@ public class Breakout {
         }
     }
 
+    private void circleRectangleCollision(){
+    }
+
     private void moveBall(double dx, double dy){
         double cxPos = ball.getX();
         double cyPos = ball.getY();
@@ -193,4 +196,22 @@ public class Breakout {
 
 
 
+}
+
+class Circle{
+    public Circle(double x, double y, double r){
+        this.x = x;
+        this.y = y;
+        this.r = r;
+    }
+
+    double x;
+    double y;
+    double r;
+}
+
+class Rectangle{
+    public Rectangle(){
+
+    }
 }
