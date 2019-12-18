@@ -5,6 +5,7 @@ import breakout.event.EventBus;
 import breakout.event.IEventHandler;
 import breakout.event.ModelEvent;
 import breakout.view.BreakoutGUI;
+import org.w3c.dom.css.Rect;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,29 +28,14 @@ public class Breakout extends Base {
     public static final Ball ball = new Ball(GAME_WIDTH / 2 - (Ball.BALL_WIDTH / 2), GAME_HEIGHT - 100);
     public static final Paddle paddle = new Paddle(GAME_WIDTH / 2 - (Paddle.PADDLE_WIDTH / 2), ball.getY() + ball.getWidth());
 
-
-    private int ballsLeft = 5;
-    int points;
-
-    // Objects needed for the model
-    private List<Wall> walls;
-    private List<Brick> bricks;
-
-    // Variables needed for paddle movement
-    private int paddleDX;
-
     // Constructor that accepts all objects needed for the model
     public Breakout(List<Wall> walls, List<Brick> bricks){
         this.walls = walls;
         this.bricks = bricks;
-
-        Random r = new Random();
     }
 
 
     // --------  Game Logic -------------
-
-    private long timeForLastHit;         // To avoid multiple collisions
 
     public void update(long now) {
         // Hax
@@ -59,19 +45,10 @@ public class Breakout extends Base {
         movePaddle(paddleDX);
 
         // Move Ball
-        //moveBall(ball.getDX(), ball.getDY());
-
-        for (int i = 0; i < Ball.BALL_SPEED * 10; i++){
-            moveBall(ball.getDX() / (Ball.BALL_SPEED * 10), ball.getDY() / (Ball.BALL_SPEED * 10));
-            if (timeForLastHit <= now - (SEC / 30)){
-                handleCollisions(now);
-            }
-        }
+        moveBall(ball.getDX(), ball.getDY());
 
         // Collisions
-        if (timeForLastHit <= now - (SEC / 30)){
-            handleCollisions(now);
-        }
+        handleCollisions();
 
         // Game Over
         if (ball.getY() >= GAME_HEIGHT){
@@ -85,8 +62,7 @@ public class Breakout extends Base {
     private void gameOver(){
         if (getBallsLeft() > 0){
             // Spawns a new ball
-            ball.setX(GAME_WIDTH / 2 - (Ball.BALL_WIDTH / 2));
-            ball.setY(GAME_HEIGHT - 100);
+            ball.reset(GAME_WIDTH / 2 - (Ball.BALL_WIDTH / 2), GAME_HEIGHT - 100);
 
             ballsLeft -= 1;
         }
@@ -95,48 +71,98 @@ public class Breakout extends Base {
         }
     }
 
-    private void handleCollisions(long now){
-        double xPos = ball.getX();
-        double yPos = ball.getY();
+    private void handleCollisions(){
 
-        if (xPos + ball.getWidth() >= GAME_WIDTH || xPos <= 0){ // Left/Right Wall
-            ball.setDX(-ball.getDX());
-            timeForLastHit = now;
-        }
-        else if (yPos <= 0){ // Top Wall
-            ball.setDY(-ball.getDY());
-            timeForLastHit = now;
-        }
-        // Collision with paddle
-        else if (yPos >= paddle.getY() - paddle.getHeight() / 2){
-            if (yPos <= paddle.getY() + paddle.getHeight() / 2){
-                if (xPos >= paddle.getX() && xPos <= paddle.getX() + paddle.getWidth()){
-                    ball.setDY(-ball.getDY());
-                    timeForLastHit = now;
-
-                    // Call Sound
-                    EventBus.INSTANCE.publish(new ModelEvent(ModelEvent.Type.BALL_HIT_PADDLE));
-                }
-            }
+        // Collision with walls
+        for (Wall w : walls){
+            handleBallDirection(circleRectangleCollision(w));
         }
 
         // Collision with bricks
         for (int i = 0; i < bricks.size(); i++){
-            Brick b = bricks.get(i);
-            if ((yPos >= b.getY() - 1 && yPos <= b.getY() + b.getHeight() + 2) && (xPos >= b.getX() - 1 && xPos <= b.getX() + b.getWidth() + 2)){
-                ball.setDY(-ball.getDY());
-                timeForLastHit = now;
+            Side side = circleRectangleCollision(bricks.get(i));
+
+            // If collision, play sound and remove brick
+            if (side != Side.NONE){
                 bricks.remove(i);
                 i--;
                 points++;
 
-                // Call Sound
                 EventBus.INSTANCE.publish(new ModelEvent(ModelEvent.Type.BALL_HIT_BRICK));
             }
+
+            // Edit direction of the ball
+            handleBallDirection(side);
+        }
+
+        // Collision with paddle
+        Side side = circleRectangleCollision(paddle);
+
+        // If collision, play sound
+        if (side != Side.NONE){
+            EventBus.INSTANCE.publish(new ModelEvent(ModelEvent.Type.BALL_HIT_PADDLE));
+        }
+
+        // Edit direction of the ball
+        handleBallDirection(side);
+    }
+
+    private void handleBallDirection(Side side){
+        if (side == Side.TOP || side == Side.BOTTOM){
+            ball.setDY(-ball.getDY());
+        }
+        else if(side == Side.LEFT || side == Side.RIGHT){
+            ball.setDX(-ball.getDX());
         }
     }
 
-    private void circleRectangleCollision(){
+    private Side circleRectangleCollision(IPositionable rect){
+        // Variables needed for calculation
+        double cx = ball.getX() + ball.getWidth() / 2;
+        double cy = ball.getY() + ball.getWidth() / 2;
+
+        double rx = rect.getX();
+        double ry = rect.getY();
+
+        double testX = cx;
+        double testY = cy;
+
+        double rw = rect.getWidth();
+        double rh = rect.getHeight();
+
+        Side side = Side.NONE;
+
+        // Checks which edge of the rectangle the circle is closest to
+        if (cx < rx){ // left edge
+            testX = rx;
+            side = Side.LEFT;
+        }
+        else if (cx > rx+rw){ // right edge
+            testX = rx+rw;
+            side = Side.RIGHT;
+        }
+
+        if (cy < ry){ // top edge
+            testY = ry;
+            side = Side.TOP;
+        }
+        else if (cy > ry+rh){ // bottom edge
+            testY = ry+rh;
+            side = Side.BOTTOM;
+        }
+
+        // Calculates the distance from the circle to the rect
+        double distX = cx-testX;
+        double distY = cy-testY;
+        double distance = Math.sqrt( (distX*distX) + (distY*distY) );
+
+        // Returns the result
+        if (distance <= ball.getWidth() / 2) {
+            return side;
+        }
+        else {
+            return Side.NONE;
+        }
     }
 
     private void moveBall(double dx, double dy){
@@ -205,13 +231,44 @@ class Circle{
         this.r = r;
     }
 
-    double x;
-    double y;
-    double r;
+    private double x;
+    private double y;
+    private double r;
+
+    public double getX(){
+        return x;
+    }
+    public double getY(){
+        return y;
+    }
+    public double getRadius(){
+        return r;
+    }
 }
 
 class Rectangle{
-    public Rectangle(){
+    public Rectangle(double x, double y, double width, double height){
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+    }
 
+    private double x;
+    private double y;
+    private double width;
+    private double height;
+
+    public double getX(){
+        return x;
+    }
+    public double getY(){
+        return y;
+    }
+    public double getWidth(){
+        return width;
+    }
+    public double getHeight(){
+        return height;
     }
 }

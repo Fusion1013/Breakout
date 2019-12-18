@@ -5,19 +5,17 @@ package breakout.model;
  */
 public class Wall implements IPositionable {
 
-    public Wall(Dir dir, double xPos, double yPos, double wallHeight){
-        this.dir = dir;
+    public Wall(double xPos, double yPos, double width, double height){
         this.xPos = xPos;
         this.yPos = yPos;
-        this.wallHeight = wallHeight;
+        this.width = width;
+        this.height = height;
     }
 
-    public static final double WALL_WIDTH = 1;
-
-    public Dir dir;
-    public double xPos;
-    public double yPos;
-    public double wallHeight;
+    private double xPos;
+    private double yPos;
+    private double width;
+    private double height;
 
 
     @Override
@@ -32,17 +30,11 @@ public class Wall implements IPositionable {
 
     @Override
     public double getWidth() {
-        return WALL_WIDTH;
+        return width;
     }
 
     @Override
     public double getHeight() {
-        return wallHeight;
+        return height;
     }
-
-
-    public enum Dir {
-        HORIZONTAL, VERTICAL;
-    }
-
 }

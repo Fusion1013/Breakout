@@ -12,14 +12,10 @@ import static breakout.model.Breakout.GAME_WIDTH;
 public class Ball implements IPositionable {
     public static final double BALL_WIDTH = 8.0;
     public static final double BALL_SPEED = 4.0;
-    public static final double START_ANGLE = Math.PI / 4;
+    public static final double ANGLE_RANGE = Math.PI / 4;
 
     public Ball(double x, double y){
-        this.xPos = x;
-        this.yPos = y;
-
-        this.dx = Math.cos(START_ANGLE) * BALL_SPEED;
-        this.dy = -Math.sin(START_ANGLE) * BALL_SPEED;
+        reset(x, y);
     }
 
     private double xPos;
@@ -70,5 +66,16 @@ public class Ball implements IPositionable {
 
     public void setDY(double dy) {
         this.dy = dy;
+    }
+
+    public void reset(double xPos, double yPos){
+        Random r = new Random();
+        double deltaAngle = r.nextDouble() * ANGLE_RANGE;
+
+        this.dx = Math.cos(deltaAngle / 2 + ANGLE_RANGE / 2) * BALL_SPEED;
+        this.dy = -Math.sin(deltaAngle / 2 + ANGLE_RANGE / 2) * BALL_SPEED;
+
+        this.xPos = xPos;
+        this.yPos = yPos;
     }
 }
